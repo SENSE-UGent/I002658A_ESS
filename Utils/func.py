@@ -337,20 +337,18 @@ def update_plot2(CEC, VWC, BD,ECW, vwc_i, b_dens_i, CEC_i):
     
     # set y axis range from 0 to 100 mS/m
     axes[2].set_ylim([0, 100])
-    axes[2].set_xlabel("CEC [mmol/g]")
+    axes[2].set_xlabel("CEC [mmol/100 g]")
     axes[2].set_ylabel("bulk EC [mS/m]")
     axes[2].legend(loc='upper right')
-    fig.suptitle('Evaluation of Waxman & Smits (1968) EC model with '
-                 'Revil et al. 1998 modification', fontsize=14)
+    fig.suptitle('Evaluation of Waxman & Smits (1968) EC model', fontsize=14)
     plt.show()
 
 # 2.0: Pedophysical modelling - Linde et al. 2006
 # -----------------------------------------------
 
-def waxsmits(vwc, bd, water_ec, CEC, pdn=2.65, m=1.5, n=2, a = 0.4):
+def waxsmits(vwc, bd, water_ec, CEC, pdn=2.65, m=1.5, n=2):
     """        
     Pedophysical modelling following the revised Waxman-Smits model
-    as proposed by Revil et al. 2013.
 
     Parameters
     ----------
@@ -375,28 +373,86 @@ def waxsmits(vwc, bd, water_ec, CEC, pdn=2.65, m=1.5, n=2, a = 0.4):
     n: float
         saturation exponent [-]
 
-    a: float
-        fitting parameter [-] (see Wunderlich et al. 2013)
-
     Returns
     -------
     bulk_ec: float
         Soil bulk real electrical conductivity [mS/m]
     """  
-    #Convert particle density to kg/m3
-    pdn_kg = pdn * 1000
-    water_ec = water_ec/1000 # to S/m
+    # porosity and saturation
     por = 1-(bd/pdn)
     sat_w = (vwc/100)/por 
-    
-    Q_v = (pdn_kg) * ((1-por) / por) * CEC
-    # formation factor
-    f_form = por**(-m) 
-    # Empirical ion mobility factor (Revil et al. 1998)
-    B = (4.78e-8) * (1 - 0.6 * np.exp(-(water_ec/0.013))) 
 
-    bulk_ec = (sat_w**n/f_form) / a * (water_ec + ((B * Q_v)/sat_w))
-    return bulk_ec*1000 # to milliSiemens per meter
+    # Pore water EC // Waxman-Smits notation and units
+    Cw_Sm = water_ec/1000 # mS/m to S/m
+    Cw_Scm = Cw_Sm / 100.0 # S/m to S/cm (cf. Waxman-Smits, 1968)
+    
+    # Waxman–Smits Qv: ion exchange capacity per pore volume [meq/cm³ pore volume]
+    Q_v = (bd / por) * (CEC / 100.0)
+
+    # formation factor (F* in Revil et al. 2012)
+    f_form = por**(-m) 
+
+    # Waxman–Smits equivalent conductance of exchange cations (B [S cm^2/meq]), water conductivity (Cw in S/cm)
+    B = 0.046 * (1 - 0.6 * np.exp(-Cw_Scm / 0.013))
+    BQv_in_Sm = 100.0 * B * Q_v # S/cm to S/m (cf. Waxman-Smits, 1968)
+
+    bulk_ec_Sm = (sat_w ** n / f_form) * (Cw_Sm + BQv_in_Sm / sat_w)
+    return bulk_ec_Sm*1000 # to milliSiemens per meter
+    
+
+# def waxsmits_ERROR(vwc, bd, water_ec, CEC, pdn=2.65, m=1.5, n=2, a = 0.4):
+#     """        
+#     Pedophysical modelling following the revised Waxman-Smits model
+    
+#     ERROR - identified 2026!!! kept for reference - remove in future versions 
+#       confuses Wunderlich & Revil modifications to the original Waxman-Smits model (1968)
+#       incorrectly integrates units -- wrong!
+
+#     Parameters
+#     ----------
+#     vwc: float
+#         volumetric water content [%]
+    
+#     bd: float
+#         bulk density [g/cm3]
+
+#     CEC: float
+#         cation exchange capacity [meq/100g]
+
+#     water_ec: float
+#         Soil water real electrical conductivity [mS/m]
+
+#     pdn: float
+#         particle density [g/cm3]
+
+#     m: float
+#         cementation exponent [-]
+
+#     n: float
+#         saturation exponent [-]
+
+#     a: float
+#         fitting parameter [-] (see Wunderlich et al. 2013)
+
+#     Returns
+#     -------
+#     bulk_ec: float
+#         Soil bulk real electrical conductivity [mS/m]
+#     """  
+#     #Convert particle density to kg/m3
+#     pdn_kg = pdn * 1000
+#     water_ec = water_ec/1000 # to S/m
+#     por = 1-(bd/pdn)
+#     sat_w = (vwc/100)/por 
+    
+#     Q_v = (pdn_kg) * ((1-por) / por) * CEC
+#     # formation factor
+#     f_form = por**(-m) 
+#     # Empirical ion mobility factor (Revil et al. 1998)
+#     B = (4.78e-8) * (1 - 0.6 * np.exp(-(water_ec/0.013))) 
+
+#     bulk_ec = (sat_w**n/f_form) / a * (water_ec + ((B * Q_v)/sat_w))
+#     return bulk_ec*1000 # to milliSiemens per meter
     
 
 def linde(vwc, bd, water_ec, clay, sand, pdn=2.65, m=1.5, n=2):
