@@ -310,6 +310,7 @@ def update_plot(CLAY, VWC, ECW, BD, vwc_i, b_dens_i, clay_i):
 
 # Update plot function
 def update_plot2(CEC, VWC, BD,ECW, vwc_i, b_dens_i, CEC_i):
+    
     # Calculate model outputs
     c_v_it = [waxsmits(vwc, BD, ECW, CEC) for vwc in vwc_i]
     c_b_it = [waxsmits(VWC, bd, ECW, CEC) for bd in b_dens_i]
@@ -336,7 +337,7 @@ def update_plot2(CEC, VWC, BD,ECW, vwc_i, b_dens_i, CEC_i):
     axes[2].plot(CEC_i, c_c_it, label=plot_lab, linewidth=3)
     
     # set y axis range from 0 to 100 mS/m
-    axes[2].set_ylim([0, 100])
+    axes[2].set_ylim([0, 150])
     axes[2].set_xlabel("CEC [mmol/100 g]")
     axes[2].set_ylabel("bulk EC [mS/m]")
     axes[2].legend(loc='upper right')
